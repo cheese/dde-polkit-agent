@@ -3,6 +3,7 @@
 
 #include <QTimer>
 #include <QVariant>
+#include <QThread>
 
 static QString USERNAME;
 static QString PASSWORD;
@@ -11,10 +12,16 @@ DeepinAuthFramework::DeepinAuthFramework(DeepinAuthInterface *inter, QObject *pa
     : QObject(parent)
     , m_interface(inter)
 {
+    m_authThread = new QThread;
+    m_authThread->start();
 }
 
 DeepinAuthFramework::~DeepinAuthFramework()
 {
+    if(m_authThread != nullptr) {
+        if(m_authThread->isRunning()) m_authThread->quit();
+        m_authThread->deleteLater();
+    }
 }
 
 void DeepinAuthFramework::SetUser(const QString &username)
@@ -24,30 +31,25 @@ void DeepinAuthFramework::SetUser(const QString &username)
 
 void DeepinAuthFramework::Authenticate()
 {
-    m_keyboard = new AuthAgent(AuthAgent::Keyboard, this);
-    m_fprint = new AuthAgent(AuthAgent::Fprint, this);
+    if (m_authagent == nullptr) {
+        m_authagent = new AuthAgent(USERNAME, AuthAgent::Password, this);
+        m_authagent->moveToThread(m_authThread);
+        if(!m_authThread->isRunning()) m_authThread->start();
 
-    m_keyboard->SetUser(USERNAME);
-    m_fprint->SetUser(USERNAME);
-
-    // It takes time to auth again after cancel!
-    QTimer::singleShot(100, this, [=] {
-        if (!PASSWORD.isEmpty()) {
-            m_keyboard->Authenticate();
-        }
-    });
-
-    QTimer::singleShot(500, m_fprint, &AuthAgent::Authenticate);
+        // It takes time to auth again after cancel!
+        QTimer::singleShot(100, m_authagent, [=] {
+            if (!PASSWORD.isEmpty()) {
+                m_authagent->Authenticate();
+            }
+        });
+    }
 }
 
 void DeepinAuthFramework::Clear()
 {
-    if (!m_keyboard.isNull()) {
-        m_keyboard->deleteLater();
-    }
-
-    if (!m_fprint.isNull()) {
-        m_fprint->deleteLater();
+    if (!m_authagent.isNull()) {
+        delete m_authagent;
+        m_authagent = nullptr;
     }
 
     PASSWORD.clear();
@@ -70,23 +72,17 @@ const QString DeepinAuthFramework::RequestEchoOn(const QString &msg)
     return msg;
 }
 
-void DeepinAuthFramework::DisplayErrorMsg(AuthAgent::Type type, const QString &errtype, const QString &msg)
+void DeepinAuthFramework::DisplayErrorMsg(AuthAgent::AuthFlag type, const QString &msg)
 {
-    Q_UNUSED(type);
-
-    m_interface->onDisplayErrorMsg(errtype, msg);
+    m_interface->onDisplayErrorMsg(type, msg);
 }
 
-void DeepinAuthFramework::DisplayTextInfo(AuthAgent::Type type, const QString &msg)
+void DeepinAuthFramework::DisplayTextInfo(AuthAgent::AuthFlag type, const QString &msg)
 {
-    Q_UNUSED(type);
-
-    m_interface->onDisplayTextInfo(msg);
+    m_interface->onDisplayTextInfo(type, msg);
 }
 
-void DeepinAuthFramework::RespondResult(AuthAgent::Type type, const QString &msg)
+void DeepinAuthFramework::RespondResult(AuthAgent::AuthFlag type, const QString &msg)
 {
-    if (type == AuthAgent::Fprint && msg.isEmpty()) return;
-
-    m_interface->onPasswordResult(msg);
+    m_interface->onPasswordResult(type, msg);
 }

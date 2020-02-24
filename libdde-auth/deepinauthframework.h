@@ -7,6 +7,7 @@
 #include <QPointer>
 
 class DeepinAuthInterface;
+class QThread;
 class DeepinAuthFramework : public QObject
 {
     Q_OBJECT
@@ -25,14 +26,14 @@ public slots:
 private:
     const QString RequestEchoOff(const QString &msg);
     const QString RequestEchoOn(const QString &msg);
-    void DisplayErrorMsg(AuthAgent::Type type, const QString &errtype, const QString &msg);
-    void DisplayTextInfo(AuthAgent::Type type, const QString &msg);
-    void RespondResult(AuthAgent::Type type, const QString &msg);
+    void DisplayErrorMsg(AuthAgent::AuthFlag type, const QString &msg);
+    void DisplayTextInfo(AuthAgent::AuthFlag type, const QString &msg);
+    void RespondResult(AuthAgent::AuthFlag type, const QString &msg);
 
 private:
     DeepinAuthInterface *m_interface;
-    QPointer<AuthAgent> m_keyboard;
-    QPointer<AuthAgent> m_fprint;
+    QPointer<AuthAgent> m_authagent;
+    QThread* m_authThread = nullptr;
 };
 
 #endif // DEEPINAUTHFRAMEWORK_H

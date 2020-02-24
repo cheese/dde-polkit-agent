@@ -66,9 +66,9 @@ public slots:
 
     void setWIdForAction(const QString &action, qulonglong wID);
 
-    void onDisplayErrorMsg(const QString &errtype, const QString &msg) override;
-    void onDisplayTextInfo(const QString &msg) override;
-    void onPasswordResult(const QString &msg) override;
+    void onDisplayErrorMsg(AuthAgent::AuthFlag type, const QString &msg) override;
+    void onDisplayTextInfo(AuthAgent::AuthFlag type, const QString &msg) override;
+    void onPasswordResult(AuthAgent::AuthFlag type, const QString &msg) override;
 
 private:
     QPointer<AuthDialog> m_dialog;

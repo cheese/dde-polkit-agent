@@ -37,7 +37,7 @@
 
 PolicyKitListener::PolicyKitListener(QObject *parent)
         : Listener(parent)
-        , m_selectedUser(0)
+        , m_selectedUser(nullptr)
         , m_inProgress(false)
         , m_usePassword(false)
         , m_numFPrint(0)
@@ -94,24 +94,25 @@ void PolicyKitListener::setWIdForAction(const QString &action, qulonglong wID)
     m_actionsToWID[action] = wID;
 }
 
-void PolicyKitListener::onDisplayErrorMsg(const QString &errtype, const QString &msg)
+void PolicyKitListener::onDisplayErrorMsg(AuthAgent::AuthFlag type, const QString &msg)
 {
+    Q_UNUSED(type);
     if (!m_dialog.isNull()) {
-        if (errtype == "verify-timed-out")
-            m_dialog->setAuthMode(AuthDialog::AuthMode::Password);
         m_dialog->setError(msg);
     }
 }
 
-void PolicyKitListener::onDisplayTextInfo(const QString &msg)
+void PolicyKitListener::onDisplayTextInfo(AuthAgent::AuthFlag type, const QString &msg)
 {
+    Q_UNUSED(type);
     if (!m_dialog.isNull()) {
         m_dialog->setRequest(msg, true);
     }
 }
 
-void PolicyKitListener::onPasswordResult(const QString &msg)
+void PolicyKitListener::onPasswordResult(AuthAgent::AuthFlag type, const QString &msg)
 {
+    Q_UNUSED(type);
     if (msg.isEmpty()) {
         return completed(false);
     }
