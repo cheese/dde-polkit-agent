@@ -78,6 +78,11 @@ AuthDialog::AuthDialog(const QString &actionId,
     createUserCB(identities);
 
     connect(this, &AuthDialog::aboutToClose, this, &AuthDialog::rejected);
+
+    QRegExp reg("^((?![\u4e00-\u9fa5]).)*");
+    QValidator*validator = new QRegExpValidator(reg);
+    m_passwordInput->lineEdit()->setValidator(validator);
+    m_passwordInput->lineEdit()->setAttribute(Qt::WA_InputMethodEnabled, false);
 }
 
 AuthDialog::~AuthDialog()
