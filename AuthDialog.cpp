@@ -89,8 +89,7 @@ AuthDialog::~AuthDialog()
 
 void AuthDialog::setError(const QString &error)
 {
-    m_tooltip->setMessage(error);
-    showErrorTip();
+    m_passwordInput->showAlertMessage(error);
 }
 
 void AuthDialog::setRequest(const QString &request, bool requiresAdmin)
