@@ -103,7 +103,7 @@ void AuthDialog::setError(const QString &error)
     } else {
         dgetText = QString(dgettext("deepin-authentication", error.toUtf8()));
     }
-    m_passwordInput->showAlertMessage(dgetText);
+    m_passwordInput->showAlertMessage(dgetText, m_passwordInput);
 }
 
 void AuthDialog::setRequest(const QString &request, bool requiresAdmin)
