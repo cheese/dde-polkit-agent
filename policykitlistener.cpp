@@ -19,6 +19,7 @@
 
 #include <QDBusConnection>
 #include <QDebug>
+#include <QAbstractButton>
 
 #include <polkit-qt5-1/PolkitQt1/Agent/Listener>
 #include <polkit-qt5-1/PolkitQt1/Agent/Session>
@@ -157,7 +158,10 @@ void PolicyKitListener::initiateAuthentication(const QString &actionId,
 
     m_dialog = new AuthDialog(actionId, message, iconName, details, identities, parentId);
 
-    connect(m_dialog.data(), SIGNAL(okClicked()), SLOT(dialogAccepted()));
+    connect(m_dialog.data(), &AuthDialog::okClicked, this, [=]{
+            m_dialog.data()->getButton(1)->setEnabled(false);   //pms 28475 防止用户点击确定按钮过快，导致后台验证还未返回时再次验证
+            dialogAccepted();
+    });
     connect(m_dialog.data(), SIGNAL(rejected()), SLOT(dialogCanceled()));
     connect(m_dialog.data(), SIGNAL(adminUserSelected(PolkitQt1::Identity)), SLOT(userSelected(PolkitQt1::Identity)));
 
