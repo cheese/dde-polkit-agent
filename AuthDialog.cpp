@@ -18,6 +18,8 @@
  */
 
 #include "AuthDialog.h"
+#include "accessiblemap.h"
+#include "usersmanager.h"
 
 #include <QProcess>
 #include <QPainter>
@@ -36,7 +38,6 @@
 
 #include <libintl.h>
 
-#include "usersmanager.h"
 DWIDGET_USE_NAMESPACE
 
 AuthDialog::AuthDialog(const QString &actionId,
@@ -77,6 +78,8 @@ AuthDialog::AuthDialog(const QString &actionId,
     createUserCB(identities);
 
     connect(this, &AuthDialog::aboutToClose, this, &AuthDialog::rejected);
+    connect(this, &AuthDialog::clearAccessibleMap, AccessibleMap::instance(),&AccessibleMap::clearAccessibleMap,Qt::DirectConnection);
+
 
     QRegExp reg("^((?![\u4e00-\u9fa5]).)*");
     QValidator*validator = new QRegExpValidator(reg);
@@ -89,6 +92,7 @@ AuthDialog::~AuthDialog()
     qDebug() << "~AuthDialog";
     m_tooltip->hide();
     delete m_tooltip;
+    Q_EMIT clearAccessibleMap();
 }
 
 void AuthDialog::setError(const QString &error)
