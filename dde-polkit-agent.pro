@@ -27,7 +27,6 @@ HEADERS += policykitlistener.h \
     accessible.h \
     accessiblemap.h
 
-#include(libdde-auth/libdde-auth.pri)
 
 RESOURCES += images.qrc
 
@@ -40,9 +39,6 @@ CONFIG(release, debug|release) {
     system($$PWD/translate_generation.sh)
 }
 
-#deepin {
-#    DEFINES += ENABLE_DEEPIN_AUTH
-#}
 
 target.path = /usr/lib/polkit-1-dde
 

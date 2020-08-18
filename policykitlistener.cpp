@@ -34,7 +34,6 @@
 
 #include "pluginmanager.h"
 
-//#include "libdde-auth/deepinauthframework.h"
 
 #define USE_DEEPIN_AUTH "useDeepinAuth"
 
@@ -51,9 +50,6 @@ PolicyKitListener::PolicyKitListener(QObject *parent)
         m_gsettings = new QGSettings("com.deepin.dde.auth.control", "/com/deepin/dde/auth/control/", this);
     }
 
-    //    m_deepinAuthFramework = new DeepinAuthFramework(this, this);
-    //    m_fprintdInter = new FPrintd("com.deepin.daemon.Fprintd", "/com/deepin/daemon/Fprintd",
-    //                                 QDBusConnection::systemBus(), this);
 
     QDBusConnection sessionBus = QDBusConnection::sessionBus();
     if (!sessionBus.registerService("com.deepin.Polkit1AuthAgent")) {
@@ -89,33 +85,6 @@ void PolicyKitListener::setWIdForAction(const QString &action, qulonglong wID)
 {
     qDebug() << "On to the handshake";
     m_actionsToWID[action] = wID;
-}
-
-void PolicyKitListener::onDisplayErrorMsg(const QString &errtype, const QString &msg)
-{
-    if (!m_dialog.isNull()) {
-        if (errtype == "verify-timed-out")
-            m_dialog->setAuthMode(AuthDialog::AuthMode::Password);
-        m_dialog->setError(msg);
-    }
-}
-
-void PolicyKitListener::onDisplayTextInfo(const QString &msg)
-{
-    if (!m_dialog.isNull()) {
-        m_dialog->setRequest(msg, true);
-    }
-}
-
-void PolicyKitListener::onPasswordResult(const QString &msg)
-{
-    if (msg.isEmpty()) {
-        return completed(false);
-    }
-
-    m_password = msg;
-    m_session->initiate();
-    m_session->setResponse(m_password);
 }
 
 void PolicyKitListener::initiateAuthentication(const QString &actionId,
@@ -200,12 +169,14 @@ void PolicyKitListener::tryAgain()
         m_session = new Session(m_selectedUser, m_cookie, m_result);
 
         connect(m_session.data(), &Session::request, this, &PolicyKitListener::request);
-        connect(m_session.data(), SIGNAL(completed(bool)), this, SLOT(completed(bool)));
-        connect(m_session.data(), SIGNAL(showError(QString)), this, SLOT(showError(QString)));
+        connect(m_session.data(), &Session::completed, this, &PolicyKitListener::completed);
+        connect(m_session.data(), &Session::showError, this, &PolicyKitListener::showError);
+        connect(m_session.data(), &Session::showInfo, this, &PolicyKitListener::showInfo);
 
         const QString username { m_selectedUser.toString().replace("unix-user:", "") };
 
         m_session->initiate();
+
     }
 }
 
@@ -214,12 +185,12 @@ void PolicyKitListener::finishObtainPrivilege()
     qDebug() << "Finishing obtaining privileges";
 
     // Number of tries increase only when some user is selected
-    if (m_selectedUser.isValid()) {
+    if (m_selectedUser.isValid() && m_usePassword) {
         m_numTries++;
     }
 
     if (!m_gainedAuthorization && !m_wasCancelled && !m_dialog.isNull()) {
-        m_dialog.data()->authenticationFailure(m_numTries);
+        m_dialog.data()->authenticationFailure(m_numTries, m_usePassword);
 
         if (m_numTries < 3) {
             m_session.data()->deleteLater();
@@ -293,6 +264,14 @@ void PolicyKitListener::showError(const QString &text)
     m_dialog.data()->setError(text);
 }
 
+void PolicyKitListener::showInfo(const QString &info)
+{
+    qDebug() << "Info: " << info;
+
+    if (m_dialog && !info.isEmpty())
+        m_dialog.data()->setAuthInfo(info);
+ }
+
 bool PolicyKitListener::isDeepin()
 {
     bool is_deepin = true;
@@ -307,6 +286,8 @@ void PolicyKitListener::dialogAccepted()
     m_delayRemoveTimer.stop();
     if (!m_dialog.isNull()) {
         qDebug() << "Dialog accepted";
+
+        m_usePassword = true;
         m_password = m_dialog->password();
         m_session->setResponse(m_password);
     }
@@ -321,7 +302,6 @@ void PolicyKitListener::dialogCanceled()
     m_wasCancelled = true;
     if (!m_session.isNull()) {
         m_session.data()->cancel();
-        //        m_deepinAuthFramework->Clear();
     }
 
     finishObtainPrivilege();

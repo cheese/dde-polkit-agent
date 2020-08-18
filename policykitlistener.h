@@ -63,12 +63,9 @@ public slots:
     void request(const QString &request, bool echo);
     void completed(bool gainedAuthorization);
     void showError(const QString &text);
+    void showInfo(const QString &info);
 
     void setWIdForAction(const QString &action, qulonglong wID);
-
-    void onDisplayErrorMsg(const QString &errtype, const QString &msg);
-    void onDisplayTextInfo(const QString &msg);
-    void onPasswordResult(const QString &msg);
 
 private:
     QPointer<AuthDialog> m_dialog;

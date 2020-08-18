@@ -51,8 +51,7 @@ AuthDialog::AuthDialog(const QString &actionId,
       m_iconName(iconName),
       m_adminsCombo(new QComboBox(this)),
       m_passwordInput(new DPasswordEdit(this)),
-      m_tooltip(new ErrorTooltip("")),
-      m_currentAuthMode(AuthMode::FingerPrint)
+      m_tooltip(new ErrorTooltip(""))
 {
     Q_UNUSED(details)
     Q_UNUSED(parent)
@@ -107,49 +106,19 @@ void AuthDialog::setError(const QString &error)
         dgetText = QString(dgettext("deepin-authentication", error.toUtf8()));
     }
     m_passwordInput->showAlertMessage(dgetText, m_passwordInput);
+
 }
 
 void AuthDialog::setRequest(const QString &request, bool requiresAdmin)
 {
     Q_UNUSED(requiresAdmin)
-
-    // FIXME(sbw):
-    // Let's Do some evil here:
-    // in current environment, Don't know why but request text "Password: "
-    // missing last character ' '. so the translated message not load currectly.
-    // This really is a bug.
-//    if (request.startsWith("Password:")) {
-//        setAuthMode(AuthMode::Password);
-//    }
 }
 
-AuthDialog::AuthMode AuthDialog::authMode()
+void AuthDialog::setAuthInfo(const QString &info)
 {
-    return m_currentAuthMode;
-}
-
-void AuthDialog::setAuthMode(AuthDialog::AuthMode mode)
-{
-    switch (mode) {
-    case AuthMode::FingerPrint: {
-        m_currentAuthMode = AuthMode::FingerPrint;
-        m_passwordInput->lineEdit()->setPlaceholderText(QString(tr("Verify your fingerprint or password")));
-        break;
-    }
-    case AuthMode::Password: {
-        m_currentAuthMode = AuthMode::Password;
-        QString text = "Password: ";
-        m_passwordInput->lineEdit()->setPlaceholderText(QString(dgettext("Linux-PAM", text.toStdString().c_str())));
+    if ("Password" == info)
         m_passwordInput->lineEdit()->setFocus();
-
-        Q_EMIT usePassword();
-
-        break;
-    }
-    default:
-        break;
-    }
-
+    m_passwordInput->lineEdit()->setPlaceholderText(QString(dgettext("deepin-authentication", info.toStdString().c_str())));
     setButtonText(1, tr("Confirm"));
     getButton(1)->setAccessibleName("Confirm");
     update();
@@ -297,8 +266,11 @@ QString AuthDialog::password() const
     return m_passwordInput->text();
 }
 
-void AuthDialog::authenticationFailure(int numTries)
-{
+void AuthDialog::authenticationFailure(int numTries, bool usePassword)
+ {
+    if (!usePassword)
+        return;
+
     // TODO: show error messages.
     m_passwordInput->setEnabled(true);
     m_passwordInput->setAlert(true);
